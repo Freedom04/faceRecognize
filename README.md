@@ -225,3 +225,95 @@ python3 video_player.py
 ```
 
 选择视频文件后，界面上方会显示该视频所在的目录，下方会显示该目录下的文件列表，同时播放器开始播放该视频。
+
+
+
+以下是一个基本的界面，可以选择视频文件并播放：
+
+```python
+import os
+import sys
+import vlc
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QTreeView, QFileSystemModel, QSizePolicy
+
+class Player(QMainWindow):
+    def __init__(self, parent=None):
+        super(Player, self).__init__(parent)
+        self.setWindowTitle("Video Player")
+        self.setWindowIcon(QIcon("icon.png"))
+        self.setGeometry(100, 100, 800, 600)
+        self.media_player = None
+        self.video_path = None
+        self.init_ui()
+
+    def init_ui(self):
+        # 添加菜单栏
+        open_action = self.create_action("&Open", self.open_file, "Ctrl+O", "Open video file")
+        exit_action = self.create_action("&Exit", self.exit_app, "Ctrl+Q", "Exit application")
+        file_menu = self.menuBar().addMenu("&File")
+        file_menu.addAction(open_action)
+        file_menu.addSeparator()
+        file_menu.addAction(exit_action)
+
+        # 添加视频播放区域
+        self.media_player = vlc.MediaPlayer()
+        if sys.platform.startswith('linux'): # for Linux using the X Server
+            self.media_player.set_xwindow(self.centralWidget().winId())
+        elif sys.platform == "win32": # for Windows
+            self.media_player.set_hwnd(self.centralWidget().winId())
+        elif sys.platform == "darwin": # for MacOS
+            self.media_player.set_nsobject(int(self.centralWidget().winId()))
+
+        # 添加文件浏览器
+        self.file_model = QFileSystemModel()
+        self.file_model.setRootPath('')
+        self.file_tree = QTreeView()
+        self.file_tree.setModel(self.file_model)
+        self.file_tree.setRootIndex(self.file_model.index(os.path.expanduser('~')))
+        self.file_tree.clicked.connect(self.file_clicked)
+
+        # 添加主窗口布局
+        self.setCentralWidget(self.file_tree)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+    def create_action(self, text, slot=None, shortcut=None, tooltip=None, icon=None):
+        action = QAction(text, self)
+        if icon is not None:
+            action.setIcon(QIcon(":/%s.png" % icon))
+        if shortcut is not None:
+            action.setShortcut(shortcut)
+        if tooltip is not None:
+            action.setToolTip(tooltip)
+            action.setStatusTip(tooltip)
+        if slot is not None:
+            action.triggered.connect(slot)
+        return action
+
+    def open_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Video", os.path.expanduser('~'))
+        if file_path != '':
+            self.video_path = file_path
+            self.media_player.set_media(vlc.Media(self.video_path))
+            self.media_player.play()
+
+    def file_clicked(self, index):
+        path = self.file_model.filePath(index)
+        if os.path.isfile(path):
+            self.video_path = path
+            self.media_player.set_media(vlc.Media(self.video_path))
+            self.media_player.play()
+
+    def exit_app(self):
+        self.media_player.stop()
+        sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    player = Player()
+    player.show()
+    sys.exit(app.exec_())
+```
+
+这个界面使用了VLC播放器作为视频播放的后端，并使用PyQt5实现了一个简单的文件浏览器。在初始化UI时，我们设置了主窗口的大小为800x600，并将文件浏览器放在了主窗口的中心。在菜单栏中，我们添加了一个“Open”按钮，点击它可以选择要播放的视频文件。在文件浏览器中，当用户双击一个视频文件时，它将被播放。
