@@ -1,4 +1,5 @@
 # faceRecognize
+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
 
 在Ubuntu上使用Qt和Python编写一个界面，可以使用PyQt5库。PyQt5是一个Python绑定Qt库的模块，可以方便地使用Python编写Qt应用程序。
 
